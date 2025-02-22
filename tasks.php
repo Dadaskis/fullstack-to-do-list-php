@@ -1,14 +1,13 @@
 <?php
-header("Content-Type: application/json"); // Set response type to JSON
+header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: http://localhost:5173/");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-include 'db_connection.php'; // Include your database connection file
+include 'db_connection.php';
+include 'task_manager.php';
 
-// Get the HTTP method (GET, POST, PUT, DELETE)
-$method = $_SERVER['REQUEST_METHOD'];
-
+// Handle CORS preflight request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header("Access-Control-Allow-Origin: *");
     header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
@@ -17,82 +16,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Handle GET request (fetch all tasks or a single task)
-if ($method === 'GET') {
-    if (isset($_GET['id'])) {
-        // Fetch a single task by ID
-        $id = $_GET['id'];
-        $sql = "SELECT * FROM tasks WHERE id = $id";
-    } else {
-        // Fetch all tasks
-        $sql = "SELECT * FROM tasks";
+// Create an instance of the TaskManager class
+$taskManager = new TaskManager($conn);
+
+// Handle the request
+try {
+    $method = $_SERVER['REQUEST_METHOD'];
+    $response = [];
+
+    switch ($method) {
+        case 'GET':
+            $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
+            $response = $taskManager->fetchTasks($id);
+            break;
+
+        case 'POST':
+            $data = json_decode(file_get_contents("php://input"), true);
+            $response = $taskManager->createTask($data['title'], $data['description']);
+            break;
+
+        case 'PUT':
+            $data = json_decode(file_get_contents("php://input"), true);
+            $response = $taskManager->updateTask($data['id'], $data['title'], $data['description']);
+            break;
+
+        case 'DELETE':
+            $id = (int)$_GET['id'];
+            $response = $taskManager->deleteTask($id);
+            break;
+
+        default:
+            http_response_code(405); // Method Not Allowed
+            $response = ["error" => "Method not allowed"];
+            break;
     }
-    $result = $conn->query($sql);
-    $tasks = [];
-    while ($row = $result->fetch_assoc()) {
-        $tasks[] = $row;
-    }
-    echo json_encode($tasks);
+
+    echo json_encode($response);
+} catch (Exception $e) {
+    http_response_code(500); // Internal Server Error
+    echo json_encode(["error" => $e->getMessage()]);
+} finally {
+    $conn->close();
 }
-
-// Handle POST request (create a new task)
-if ($method === 'POST') {
-    // Decode the JSON input
-    $data = json_decode(file_get_contents("php://input"), true);
-
-    // Extract data
-    $title = $data['title'];
-    $description = $data['description'];
-
-    $result = $conn->query("SELECT COUNT(*) AS total_rows FROM tasks;");
-    $resultRows = $result->fetch_assoc();
-    $rowCount = (int)$resultRows['total_rows'];
-
-    // Use prepared statements to prevent SQL injection
-    $stmt = $conn->prepare("INSERT INTO tasks (id, title, description) VALUES (?, ?, ?)");
-    $stmt->bind_param("iss", $rowCount, $title, $description); // "ss" means two string parameters
-
-    // Execute the query
-    if ($stmt->execute()) {
-        // Return the newly created task with its ID
-        $taskId = $stmt->insert_id;
-        echo json_encode([
-            "id" => $taskId,
-            "title" => $title,
-            "description" => $description,
-        ]);
-    } else {
-        echo json_encode(["error" => "Error creating task"]);
-    }
-
-    // Close the statement
-    $stmt->close();
-}
-
-// Handle PUT request (update a task)
-if ($method === 'PUT') {
-    $data = json_decode(file_get_contents("php://input"), true);
-    $id = $data['id'];
-    $title = $data['title'];
-    $description = $data['description'];
-    $sql = "UPDATE tasks SET title = '$title', description = '$description' WHERE id = $id";
-    if ($conn->query($sql)) {
-        echo json_encode(["message" => "Task updated"]);
-    } else {
-        echo json_encode(["error" => "Error updating task"]);
-    }
-}
-
-// Handle DELETE request (delete a task)
-if ($method === 'DELETE') {
-    $id = $_GET['id'];
-    $sql = "DELETE FROM tasks WHERE id = $id";
-    if ($conn->query($sql)) {
-        echo json_encode(["message" => "Task deleted"]);
-    } else {
-        echo json_encode(["error" => "Error deleting task"]);
-    }
-}
-
-$conn->close();
 ?>
