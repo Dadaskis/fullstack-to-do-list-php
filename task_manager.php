@@ -37,10 +37,11 @@ class TaskManager {
         }
     }
 
-    public function updateTask(int $id, string $title, string $description): array {
+    public function updateTask(int $id, string $title, string $description, int $isComplete): array {
         try {
-            $stmt = $this->conn->prepare("UPDATE tasks SET title = ?, description = ? WHERE id = ?");
-            $stmt->bind_param("ssi", $title, $description, $id);
+            $stmt = $this->conn->prepare("UPDATE tasks SET title = ?, description = ?, isComplete = ? WHERE id = ?");
+            error_log($isComplete);
+            $stmt->bind_param("ssii", $title, $description, $isComplete, $id);
             $stmt->execute();
             return ["message" => "Task updated"];
         } catch (Exception $e) {

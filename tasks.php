@@ -37,7 +37,7 @@ try {
 
         case 'PUT':
             $data = json_decode(file_get_contents("php://input"), true);
-            $response = $taskManager->updateTask($data['id'], $data['title'], $data['description']);
+            $response = $taskManager->updateTask($data['id'], $data['title'], $data['description'], $data['isComplete']);
             break;
 
         case 'DELETE':
