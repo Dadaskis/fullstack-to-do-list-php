@@ -25,24 +25,9 @@ try {
     $response = [];
 
     switch ($method) {
-        case 'GET':
-            $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
-            $response = $taskManager->fetchTasks($id);
-            break;
-
         case 'POST':
             $data = json_decode(file_get_contents("php://input"), true);
-            $response = $taskManager->createTask($data['title'], $data['description']);
-            break;
-
-        case 'PUT':
-            $data = json_decode(file_get_contents("php://input"), true);
-            $response = $taskManager->updateTask($data['id'], $data['title'], $data['description'], $data['isComplete']);
-            break;
-
-        case 'DELETE':
-            $id = (int)$_GET['id'];
-            $response = $taskManager->deleteTask($id);
+            $response = $taskManager->reorderTasks($data);
             break;
 
         default:

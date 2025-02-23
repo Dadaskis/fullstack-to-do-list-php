@@ -28,7 +28,7 @@ class TaskManager {
             $stmt->bind_param("ss", $title, $description);
             $stmt->execute();
             return [
-                "id" => $stmt->insert_id,
+                "id" => $this->conn->insert_id,
                 "title" => $title,
                 "description" => $description,
             ];
@@ -40,7 +40,6 @@ class TaskManager {
     public function updateTask(int $id, string $title, string $description, int $isComplete): array {
         try {
             $stmt = $this->conn->prepare("UPDATE tasks SET title = ?, description = ?, isComplete = ? WHERE id = ?");
-            error_log($isComplete);
             $stmt->bind_param("ssii", $title, $description, $isComplete, $id);
             $stmt->execute();
             return ["message" => "Task updated"];
@@ -57,6 +56,21 @@ class TaskManager {
             return ["message" => "Task deleted"];
         } catch (Exception $e) {
             throw new Exception("Failed to delete task: " . $e->getMessage());
+        }
+    }
+
+    public function reorderTasks($data): array {
+        try {
+            foreach($data as $task) {
+                $id = $task['id'];
+                $indexID = $task['indexID'];
+                $stmt = $this->conn->prepare("UPDATE tasks SET indexID = ? WHERE id = ?");
+                $stmt->bind_param("ii", $indexID, $id);
+                $stmt->execute();
+            }
+            return ["message" => "Tasks reordered"];
+        } catch (Exception $e) {
+            throw new Exception("Failed to reorder tasks: " . $e->getMessage());
         }
     }
 }
