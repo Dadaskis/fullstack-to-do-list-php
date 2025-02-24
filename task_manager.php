@@ -22,10 +22,24 @@ class TaskManager {
         }
     }
 
+    public function getTaskCount(): int {
+        try {
+            $stmt = $this->conn->prepare("SELECT COUNT(*) AS count FROM tasks");
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $row = $result->fetch_assoc();
+            return $row['count'];
+        } catch (Exception $e) {
+            throw new Exception("Failed to get task count: " . $e->getMessage());
+        }
+    }
+    
+
     public function createTask(string $title, string $description): array {
         try {
-            $stmt = $this->conn->prepare("INSERT INTO tasks (title, description) VALUES (?, ?)");
-            $stmt->bind_param("ss", $title, $description);
+            $stmt = $this->conn->prepare("INSERT INTO tasks (title, description, indexID) VALUES (?, ?, ?)");
+            $indexID = $this->getTaskCount();
+            $stmt->bind_param("ssi", $title, $description, $indexID);
             $stmt->execute();
             return [
                 "id" => $this->conn->insert_id,
