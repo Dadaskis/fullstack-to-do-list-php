@@ -1,4 +1,5 @@
 ![image](https://github.com/user-attachments/assets/9fb38611-2bc2-4180-b3fb-c913981640ca)
+
 Frontend: https://github.com/Dadaskis/fullstack-to-do-list-react
 
 # Full Stack To-Do List Application (PHP)
